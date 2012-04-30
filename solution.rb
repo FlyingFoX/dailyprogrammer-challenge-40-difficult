@@ -1,4 +1,4 @@
-#!/usr/bin/ruby1.9.1 
+#!/usr/bin/ruby 
 
 class Point
   attr_accessor :x,:y
@@ -37,6 +37,10 @@ class Area
   # Areas are equal if they define the same area. Points and neighbors are ignored.
   def ==(area)
     @top_left == area.top_left && @bottom_right == area.bottom_right
+  end
+
+  def to_svg(zoom = 100)
+    svg = "<rect x=\"#{left*zoom}\" y = \"#{top*zoom}\" width = \"#{(right - left)*zoom}\" height = \"#{(top - bottom)*zoom}\" />"
   end
 
   def to_s
@@ -189,18 +193,19 @@ def split_area(areas, area)
     new_areas << Area.new(area.top_left, Point.new(area.right, middle), :horizontal)
     # bottom area
     new_areas << Area.new(Point.new(area.left, middle), area.bottom_right, :horizontal)
-  else 
-    # last_split_direction == :horizontal
+  elsif area.last_split_direction == :horizontal
     middle = area.left + ((area.right - area.left)/2.0)
     # left area 
     new_areas << Area.new(area.top_left, Point.new(middle, area.bottom), :vertical)
     # right area
     new_areas << Area.new(Point.new(middle, area.top), area.bottom_right, :vertical)
+  else
+    raise "wrong argument: area=#{area}"
   end
 
   area.neighbors.each do |neighbor|
-    new_areas.each do|area|
-      area.add_neighbor neighbor
+    new_areas.each do|my_area|
+      my_area.add_neighbor neighbor
     end
   end
   new_areas[0].add_neighbor new_areas[1]
@@ -210,12 +215,18 @@ def split_area(areas, area)
   # area.points.sort!{|point1, point2| point1.y <=> point2.y}
   # TODO create a good sorting mechanism here.
   area.points.each do |point|
-    new_areas.each do |area|
-      area.add_point(point)
+    new_areas.each do |my_area|
+      my_area.add_point(point)
     end
   end
-  areas.delete(area)
-  areas.concat new_areas 
+  if new_areas.count != 2
+    debugger
+  end
+  result = areas.select{|my_area| my_area != area}.concat new_areas
+  if result.count !=  areas.count + 1
+    debugger
+  end
+  result
 end
 
 def pp_areas(areas)
@@ -234,16 +245,35 @@ def create_areas(points)
   points.each do |point|
     areas[0].add_point(point)
   end
-  areas_to_split = areas.keep_if{|area| area.number_of_points_near > brute_force_upper_bound}
+  areas_to_split = areas.select{|area| area.number_of_points_near > brute_force_upper_bound}
 
   while areas_to_split.count != 0
+    debugger
     # split the area with the most points 
     to_split = areas_to_split.sort_by{|area| area.points.count}.last
-    split_area(areas, to_split)
+    areas = split_area(areas, to_split)
     # needed to know if we should keep splitting
-    areas_to_split = areas.keep_if{|area| area.number_of_points_near > brute_force_upper_bound}
+    areas_to_split = areas.select{|area| area.number_of_points_near > brute_force_upper_bound}
   end
   areas
+end
+
+def plot(areas)
+  File.open("debug.svg", "w") do |file|
+    file << areas.to_svg
+  end
+end
+
+class Array
+  def to_svg(zoom=100)
+    html = "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"#{-(zoom)} #{-(zoom)} #{zoom*2} #{zoom*2}\" >"
+    html += "<style> rect, polygon, path { fill:none;stroke:black; stroke-width:1px}</style>"
+
+    self.each do |element|
+      html += element.to_svg
+    end
+    html += '</svg>'
+  end
 end
 
 if __FILE__ == $0

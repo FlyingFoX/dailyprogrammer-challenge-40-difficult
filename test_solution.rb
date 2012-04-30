@@ -1,5 +1,3 @@
-#!/usr/bin/ruby1.9.1 
-
 require 'test/unit'
 require './solution.rb'
 require 'ruby-debug'
@@ -44,10 +42,9 @@ class AreaTest < Test::Unit::TestCase
     should_be_areas << Area.new(Point.new(0.5+((0.5+0.75)/2), 0.75), Point.new(0.75, 0.5))
     should_be_areas << Area.new(Point.new(0.75, 1), Point.new(1, 0.5))
     should_be_areas.each do |should|
-      assert(areas.include?(should))
+      assert(areas.include? should)
     end
   end
-
 
   def test_point_equality
     assert_equal(Point.new(0,0), Point.new(0,0))
@@ -58,7 +55,7 @@ class AreaTest < Test::Unit::TestCase
 
   def test_split_area
     areas = [@everywhere]
-    split_area(areas,@everywhere)
+    areas = split_area(areas,@everywhere)
     assert_equal(2, areas.count)
     left_area = Area.new(@top_left, @bottom, :vertical)
     right_area = Area.new(@top, @bottom_right, :vertical)
@@ -70,7 +67,7 @@ class AreaTest < Test::Unit::TestCase
     top_right_area = Area.new(@top, @right, :horizontal)
     bottom_right_area = Area.new(@middle, @bottom_right, :horizontal)
     areas = [left_area, top_right_area, bottom_right_area]
-    split_area(areas, top_right_area)
+    areas = split_area(areas, top_right_area)
     assert_equal(4, areas.count)
   end
 
