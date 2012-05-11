@@ -1,6 +1,6 @@
 require 'test/unit'
 require './solution.rb'
-require 'ruby-debug'
+#require 'ruby-debug'
 
 class SolutionTest < Test::Unit::TestCase
   def setup
@@ -30,7 +30,6 @@ class AreaTest < Test::Unit::TestCase
   end
 
   def test_create_area
-    debugger
     points = [@left, @right, @top, @bottom, @top_left, @bottom_left, @top_right, @middle]
     areas = create_areas(points)
     assert_equal(6, areas.count)
@@ -46,6 +45,7 @@ class AreaTest < Test::Unit::TestCase
     end
   end
 
+
   def test_point_equality
     assert_equal(Point.new(0,0), Point.new(0,0))
     mypoint = Point.new(0,0)
@@ -55,7 +55,7 @@ class AreaTest < Test::Unit::TestCase
 
   def test_split_area
     areas = [@everywhere]
-    areas = split_area(areas,@everywhere)
+    split_area(areas,@everywhere)
     assert_equal(2, areas.count)
     left_area = Area.new(@top_left, @bottom, :vertical)
     right_area = Area.new(@top, @bottom_right, :vertical)

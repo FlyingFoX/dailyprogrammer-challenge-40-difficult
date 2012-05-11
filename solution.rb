@@ -185,48 +185,80 @@ def find_shortest_distance_of_array(points)
   shortest_distance
 end
 
+=begin
+This function takes an array containing all relevant areas and the area that shall be split.
+=end
 def split_area(areas, area)
-  new_areas = Array.new
-  if area.last_split_direction == :vertical
-    middle = area.bottom + ( (area.top - area.bottom)/2.0)
-    # top area
-    new_areas << Area.new(area.top_left, Point.new(area.right, middle), :horizontal)
-    # bottom area
-    new_areas << Area.new(Point.new(area.left, middle), area.bottom_right, :horizontal)
-  elsif area.last_split_direction == :horizontal
-    middle = area.left + ((area.right - area.left)/2.0)
-    # left area 
-    new_areas << Area.new(area.top_left, Point.new(middle, area.bottom), :vertical)
-    # right area
-    new_areas << Area.new(Point.new(middle, area.top), area.bottom_right, :vertical)
-  else
-    raise "wrong argument: area=#{area}"
-  end
+	unless areas.kind_of?(Array) and area.kind_of?(Area)
+		raise "wrong argument: areas=#{areas}, area=#{area}"
+	end
+	if area.last_split_direction == :horizontal
+		new_areas = split_vertical(areas, area)
+	elsif area.last_split_direction == :vertical
+		new_areas = split_horizontal(areas, area)
+	else
+		raise "wrong argument error: area=#{area}"
+	end
+	transfer_points(area, new_areas)
+	rebuild_neighbors(area, new_areas)
+	areas.delete(area)
+	areas.concat(new_areas)
+end
 
-  area.neighbors.each do |neighbor|
-    new_areas.each do|my_area|
-      my_area.add_neighbor neighbor
-    end
-  end
-  new_areas[0].add_neighbor new_areas[1]
-  new_areas[1].add_neighbor new_areas[0]
+=begin
+rebuilds all neighbor associations for the derivatives.
+derivatives will include all neighbors of the source and each other as neighbors.
+=end
+def rebuild_neighbors(source, derivatives)
+	derivatives.first.add_neighbor(derivatives.last)
+	derivatives.last.add_neighbor(derivatives.first)
+	source.neighbors.each do |neighbor|
+		derivatives.each do |derivative|
+			derivative.add_neighbor(neighbor)
+		end
+	end
+end
 
-  # why is this sort here? 
-  # area.points.sort!{|point1, point2| point1.y <=> point2.y}
-  # TODO create a good sorting mechanism here.
-  area.points.each do |point|
-    new_areas.each do |my_area|
-      my_area.add_point(point)
-    end
-  end
-  if new_areas.count != 2
-    debugger
-  end
-  result = areas.select{|my_area| my_area != area}.concat new_areas
-  if result.count !=  areas.count + 1
-    debugger
-  end
-  result
+=begin
+populates new_areas with all points currently in old_area 
+=end
+def transfer_points(old_area, new_areas)
+	unless old_area.kind_of?(Area) and new_areas.kind_of?(Array)
+		raise "wrong arguments: old=#{old_area} new=#{new_areas}"
+	end
+	old_area.points.each do |point|
+		new_areas.each do |area|
+			area.add_point(point)
+		end
+	end
+end
+
+=begin
+returns the left and right area that are the result of splitting the given area vertically..
+=end
+def split_vertical(areas, area)
+	top = area.top
+	bottom = area.bottom
+	left = area.left
+	right = area.right
+	middle = (area.right - area.left) / 2.0
+	new_left_area = Area.new(Point.new(left, top), Point.new(middle, bottom))
+	new_right_area = Area.new(Point.new(middle, top), Point.new(right, bottom))
+	[new_left_area, new_right_area]
+end
+
+=begin
+returns the left and right area that are the result of splitting the given area horizontally.
+=end
+def split_horizontal(areas, area)
+	top = area.top
+	bottom = area.bottom
+	left = area.left
+	right = area.right
+	middle = (top - bottom)/ 2.0
+	new_bottom_area = Area.new(Point.new(left, middle), Point.new(right, bottom))
+	new_top_area = Area.new(Point.new(left, top), Point.new(right, middle))
+	[new_bottom_area, new_top_area]
 end
 
 def pp_areas(areas)
@@ -236,24 +268,33 @@ def pp_areas(areas)
 end
 
 def create_areas(points)
-  # so we need to find a grid pattern that makes sure that an Area and all its neighbors
+  # so we need to find a grid pattern that makes sure that an Area and all its neighbor
   # don't include more than 6 points (maybe 5 is a better upper bound)
   # trial and error
-  brute_force_upper_bound = 7
-  areas = Array.new
-  areas << Area.new(Point.new(0,1), Point.new(1,0))
+  brute_force_upper_bound = 6
+  everywhere = Area.new(Point.new(0,1), Point.new(1,0))
+  areas = [everywhere]
   points.each do |point|
-    areas[0].add_point(point)
+    everywhere.add_point(point)
   end
   areas_to_split = areas.select{|area| area.number_of_points_near > brute_force_upper_bound}
 
   while areas_to_split.count != 0
-    debugger
     # split the area with the most points 
     to_split = areas_to_split.sort_by{|area| area.points.count}.last
-    areas = split_area(areas, to_split)
+    split_area(areas, to_split)
     # needed to know if we should keep splitting
-    areas_to_split = areas.select{|area| area.number_of_points_near > brute_force_upper_bound}
+    number_of_points_near = {}
+    areas.each do |area|
+      number_of_points_near[area] = area.number_of_points_near
+    end
+    
+    areas_to_split = []
+    number_of_points_near.each do |area, point_count|
+      if point_count > brute_force_upper_bound
+        areas_to_split << area
+      end
+    end
   end
   areas
 end
