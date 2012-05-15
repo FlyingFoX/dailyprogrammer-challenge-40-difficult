@@ -1,3 +1,4 @@
+#!/usr/bin/ruby1.9.1
 require 'test/unit'
 require './solution.rb'
 #require 'ruby-debug'
@@ -29,6 +30,26 @@ class AreaTest < Test::Unit::TestCase
     @middle = Point.new(0.5, 0.5)
   end
 
+	def test_number_of_points_near
+		points = [@left, @right, @top, @bottom]
+		points.each do |point|
+			@everywhere.add_point(point)
+		end
+		assert_equal(4, @everywhere.number_of_points_near)
+		left_area = Area.new(@top_left, @bottom)
+		right_area = Area.new(@top, @bottom_right)
+		points << @top_right << @middle << @bottom_left
+		points.each do |point|
+			left_area.add_point(point)
+			right_area.add_point(point)
+		end
+		left_area.add_neighbor(right_area)
+		right_area.add_neighbor(left_area)
+		assert_equal(points.count, left_area.number_of_points_near)
+		assert_equal(points.count, right_area.number_of_points_near)
+	end
+
+=begin
   def test_create_area
     points = [@left, @right, @top, @bottom, @top_left, @bottom_left, @top_right, @middle]
     areas = create_areas(points)
@@ -44,7 +65,7 @@ class AreaTest < Test::Unit::TestCase
       assert(areas.include? should)
     end
   end
-
+=end
 
   def test_point_equality
     assert_equal(Point.new(0,0), Point.new(0,0))
